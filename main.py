@@ -5,15 +5,16 @@ from concurrent.futures import ProcessPoolExecutor
 from pandas import DataFrame
 
 
-from utility import (
+from lib.utility import (
     run_ELT,
     combine_dataframes,
     extract,
     load,
     create_graph,
     LINEPLOT,
+    RELPLOT,
 )
-from transformers import (
+from lib.transformers import (
     calculate_percentage_of_identity_theft_online_per_year,
     calculate_burglaries_at_construction_sites_per_month,
 )
@@ -31,10 +32,6 @@ class CalculatePercentageOfIdentityTheftOnlinePerYear(luigi.Task):
     output_files: List[Path] = [
         Path("output", f"{file.stem}_transformed.csv") for file in csv_files
     ]
-
-    for file in output_files:
-        if file.exists():
-            file.unlink()
 
     def output(self) -> Dict[str, luigi.LocalTarget]:
         return {
@@ -60,9 +57,6 @@ class CombinePercentageOfIdentityTheftOnlinePerYear(luigi.Task):
         Path("output", f"{file.stem}_transformed.csv")
         for file in CalculatePercentageOfIdentityTheftOnlinePerYear.csv_files
     ]
-
-    if output_file.exists():
-        output_file.unlink()
 
     def requires(self) -> CalculatePercentageOfIdentityTheftOnlinePerYear:
         return CalculatePercentageOfIdentityTheftOnlinePerYear()
@@ -90,10 +84,6 @@ class CalculateBurglariesAtConstructionSitesPerMonth(luigi.Task):
         Path("output", f"{file.stem}_transformed.csv") for file in csv_files
     ]
 
-    for file in output_files:
-        if file.exists():
-            file.unlink()
-
     def output(self) -> Dict[str, luigi.LocalTarget]:
         return {
             f"output_{i}": luigi.LocalTarget(path=file)
@@ -116,11 +106,8 @@ class CreateIdentityTheftGraph(luigi.Task):
         "output", "combined_percentage_of_identity_theft_online_per_year.csv"
     )
 
-    if output_file.exists():
-        output_file.unlink()
-
-    def requires(self) -> list:
-        return [CombinePercentageOfIdentityTheftOnlinePerYear()]
+    def requires(self) -> CombinePercentageOfIdentityTheftOnlinePerYear:
+        return CombinePercentageOfIdentityTheftOnlinePerYear()
 
     def output(self) -> luigi.LocalTarget:
         return luigi.LocalTarget(path=self.output_file)
@@ -140,11 +127,8 @@ class CreateBurglariesGraph(luigi.Task):
     output_file: Path = Path("output", "burglaries_graph.png")
     input_file: Path = Path("output", "Crimes_-_2001_to_Present_transformed.csv")
 
-    if output_file.exists():
-        output_file.unlink()
-
-    def requires(self) -> list:
-        return [CalculateBurglariesAtConstructionSitesPerMonth()]
+    def requires(self) -> CalculateBurglariesAtConstructionSitesPerMonth:
+        return CalculateBurglariesAtConstructionSitesPerMonth()
 
     def output(self) -> luigi.LocalTarget:
         return luigi.LocalTarget(path=self.output_file)
@@ -154,16 +138,19 @@ class CreateBurglariesGraph(luigi.Task):
         create_graph(
             data=data,
             output_file=self.output_file,
-            graph_type=LINEPLOT,
+            graph_type=RELPLOT,
+            kind="line",
             x="MONTH",
             y="BURGLARIES",
-            title="Burglaries at Construction Sites per Month",
-            xlabel="Month",
-            ylabel="Number of Burglaries",
+            hue="YEAR",
+            marker="o",
+            aspect=2.5,
         )
 
 
 if __name__ == "__main__":
+    if not Path("./output").exists():
+        Path("./output").mkdir()
     luigi.build(
         tasks=[
             CreateBurglariesGraph(),
@@ -172,4 +159,5 @@ if __name__ == "__main__":
             CalculatePercentageOfIdentityTheftOnlinePerYear(),
         ],
         local_scheduler=False,
+        workers=4,
     )

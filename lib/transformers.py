@@ -1,5 +1,6 @@
 from pandas import DataFrame, to_datetime, Series, merge, Categorical
 from typing import Union
+from calendar import month_name
 
 
 def calculate_percentage_of_identity_theft_online_per_year(
@@ -96,20 +97,7 @@ def calculate_burglaries_at_construction_sites_per_month(
 
     monthly_burglaries["MONTH"] = Categorical(
         values=monthly_burglaries["MONTH"],
-        categories=[
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-        ],
+        categories=month_name[1:],
         ordered=True,
     )
 
