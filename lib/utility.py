@@ -14,6 +14,7 @@ BOXPLOT: Final = "boxplot"
 VIOLINPLOT: Final = "violinplot"
 PAIRPLOT: Final = "pairplot"
 HEATMAP: Final = "heatmap"
+RELPLOT: Final = "relplot"
 
 FilePath: TypeAlias = Union[str, PathLike[str]]
 PlotType = Literal[
@@ -25,6 +26,7 @@ PlotType = Literal[
     "violinplot",
     "pairplot",
     "heatmap",
+    "relplot",
 ]
 
 
@@ -225,7 +227,7 @@ def create_graph(
     None
     """
     seaborn.set_theme(style="whitegrid")
-    plot: Union[seaborn.axisgrid.PairGrid, Axes]
+    plot: Union[seaborn.axisgrid.PairGrid, Axes, seaborn.FacetGrid]
     if graph_type == LINEPLOT:
         plot = seaborn.lineplot(data=data, **kwargs)
     elif graph_type == SCATTERPLOT:
@@ -242,10 +244,14 @@ def create_graph(
         plot = seaborn.pairplot(data=data, **kwargs)
     elif graph_type == HEATMAP:
         plot = seaborn.heatmap(data=data, **kwargs)
+    elif graph_type == RELPLOT:
+        plot = seaborn.relplot(data=data, **kwargs)
     else:
         raise ValueError(f"Invalid plot type: {graph_type}")
 
     if isinstance(plot, seaborn.axisgrid.PairGrid):
+        plot.savefig(output_file)
+    elif isinstance(plot, seaborn.FacetGrid):
         plot.savefig(output_file)
     else:
         figure: Union[Figure, None] = plot.get_figure()
