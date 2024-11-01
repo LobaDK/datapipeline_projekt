@@ -10,6 +10,9 @@ types-requests = "*"
 luigi = "*"
 pandas-stubs = "*"
 seaborn = "*"
+sqlalchemy = "==1.4.54"
+dask = "*"
+types-seaborn = "*"
 
 [dev-packages]
 

@@ -1,10 +1,31 @@
 from __future__ import annotations
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from pandas import read_csv, DataFrame, Series, concat
-from typing import Callable, Union, Dict, Any, Optional, List
+from typing import Callable, Literal, Union, Dict, Any, Optional, List, TypeAlias, Final
 from os import PathLike
 import seaborn
 
-FilePath = Union[str, PathLike[str]]
+LINEPLOT: Final = "lineplot"
+SCATTERPLOT: Final = "scatterplot"
+BARPLOT: Final = "barplot"
+HISTPLOT: Final = "histplot"
+BOXPLOT: Final = "boxplot"
+VIOLINPLOT: Final = "violinplot"
+PAIRPLOT: Final = "pairplot"
+HEATMAP: Final = "heatmap"
+
+FilePath: TypeAlias = Union[str, PathLike[str]]
+PlotType = Literal[
+    "lineplot",
+    "scatterplot",
+    "barplot",
+    "histplot",
+    "boxplot",
+    "violinplot",
+    "pairplot",
+    "heatmap",
+]
 
 
 def _read_csv(file_name: FilePath) -> DataFrame:
@@ -189,20 +210,46 @@ def combine_dataframes(
     return combined_data
 
 
-def create_graph(data: DataFrame, x: str, y: str, output_file: FilePath) -> None:
+def create_graph(
+    data: DataFrame, output_file: FilePath, graph_type: PlotType, **kwargs
+) -> None:
     """
     Creates a graph from the given DataFrame and saves it to a file.
 
     Parameters:
     data (DataFrame): The DataFrame containing the data to be plotted.
-    x (str): The column name to be plotted on the x-axis.
-    y (str): The column name to be plotted on the y-axis.
-    hue (str): The column name to be used for color encoding.
     output_file (FilePath): The path where the graph image will be saved.
+    **kwargs: Additional keyword arguments to be passed to the plotting function.
 
     Returns:
     None
     """
     seaborn.set_theme(style="whitegrid")
-    plot = seaborn.lineplot(data=data, x=x, y=y)
-    plot.get_figure().savefig(output_file)
+    plot: Union[seaborn.axisgrid.PairGrid, Axes]
+    if graph_type == LINEPLOT:
+        plot = seaborn.lineplot(data=data, **kwargs)
+    elif graph_type == SCATTERPLOT:
+        plot = seaborn.scatterplot(data=data, **kwargs)
+    elif graph_type == BARPLOT:
+        plot = seaborn.barplot(data=data, **kwargs)
+    elif graph_type == HISTPLOT:
+        plot = seaborn.histplot(data=data, **kwargs)
+    elif graph_type == BOXPLOT:
+        plot = seaborn.boxplot(data=data, **kwargs)
+    elif graph_type == VIOLINPLOT:
+        plot = seaborn.violinplot(data=data, **kwargs)
+    elif graph_type == PAIRPLOT:
+        plot = seaborn.pairplot(data=data, **kwargs)
+    elif graph_type == HEATMAP:
+        plot = seaborn.heatmap(data=data, **kwargs)
+    else:
+        raise ValueError(f"Invalid plot type: {graph_type}")
+
+    if isinstance(plot, seaborn.axisgrid.PairGrid):
+        plot.savefig(output_file)
+    else:
+        figure: Union[Figure, None] = plot.get_figure()
+        if figure is None:
+            raise ValueError("Failed to get figure from plot.")
+
+        figure.savefig(fname=output_file)
